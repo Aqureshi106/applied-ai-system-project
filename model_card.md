@@ -1,111 +1,91 @@
-# 🎧 Model Card: Music Recommender Simulation
+# 🎧 Model Card - Music Recommender Simulation
 
-## 1. Model Name  
+## 1. Model Name
 
-Give your model a short, descriptive name.  
-Example: **VibeFinder 1.0**  
-
----
-
-## 2. Intended Use  
-
-Describe what your recommender is designed to do and who it is for. 
-
-Prompts:  
-
-- What kind of recommendations does it generate  
-- What assumptions does it make about the user  
-- Is this for real users or classroom exploration  
+BeatMatcher Mini 1.0
 
 ---
 
-## 3. How the Model Works  
+## 2. Intended Use
 
-Explain your scoring approach in simple language.  
+This model recommends 3 to 5 songs from a small, fixed catalog based on a user's stated preferences. It is designed for classroom learning about recommendation systems, not for production use.
 
-Prompts:  
-
-- What features of each song are used (genre, energy, mood, etc.)  
-- What user preferences are considered  
-- How does the model turn those into a score  
-- What changes did you make from the starter logic  
-
-Avoid code here. Pretend you are explaining the idea to a friend who does not program.
+Target users are students and instructors exploring how feature-based scoring works and how design choices can create bias.
 
 ---
 
-## 4. Data  
+## 3. How It Works (Short Explanation)
 
-Describe the dataset the model uses.  
+The recommender compares each song to a user profile and computes a total match score. The profile includes preferred genre, mood, energy target, acoustic preference, and optional numeric targets (tempo, valence, danceability).
 
-Prompts:  
-
-- How many songs are in the catalog  
-- What genres or moods are represented  
-- Did you add or remove data  
-- Are there parts of musical taste missing in the dataset  
+Songs gain points for matching categorical preferences and for being numerically close to target values. In practice, energy similarity and acoustic preference can strongly influence ranking. After scoring all songs, the system sorts by score and returns the top results.
 
 ---
 
-## 5. Strengths  
+## 4. Data
 
-Where does your system seem to work well  
+The dataset in data/songs.csv contains 18 songs.
 
-Prompts:  
+Each song includes:
+- title and artist
+- genre and mood labels
+- energy, tempo_bpm, valence, danceability, acousticness
 
-- User types for which it gives reasonable results  
-- Any patterns you think your scoring captures correctly  
-- Cases where the recommendations matched your intuition  
-
----
-
-## 6. Limitations and Bias 
-
-Where the system struggles or behaves unfairly. 
-
-Prompts:  
-
-- Features it does not consider  
-- Genres or moods that are underrepresented  
-- Cases where the system overfits to one preference  
-- Ways the scoring might unintentionally favor some users  
+I did not add or remove songs from the provided catalog. The data covers several genres (for example pop, lofi, rock, jazz, electronic, metal, classical, hip hop), but representation is uneven. Some styles have only one song, so the catalog mostly reflects a narrow, synthetic sample rather than broad real-world listening diversity.
 
 ---
 
-## 7. Evaluation  
+## 5. Strengths
 
-How you checked whether the recommender behaved as expected. 
-
-Prompts:  
-
-- Which user profiles you tested  
-- What you looked for in the recommendations  
-- What surprised you  
-- Any simple tests or comparisons you ran  
-
-No need for numeric metrics unless you created some.
+- Transparent behavior: The scoring logic is easy to explain and debug.
+- Strong performance on in-catalog preferences: Users with common profiles (for example pop + high energy or lofi + chill) receive results that feel intuitive.
+- Good for experimentation: Weight changes and feature toggles quickly show how ranking behavior shifts.
+- Fast and simple: No training step is required; scoring runs directly on metadata.
 
 ---
 
-## 8. Future Work  
+## 6. Limitations and Bias
 
-Ideas for how you would improve the model next.  
+- Small catalog limitation: Results are constrained by only 18 songs, which can cause weak matches for niche preferences.
+- Representation bias: Underrepresented genres are disadvantaged because there are fewer candidates to recommend.
+- Numeric-over-semantic bias: Songs with close numeric values can outrank songs that better match the user's stated genre or mood intent.
+- Weight sensitivity: Minor weight changes can produce large ranking changes, making output stability fragile.
+- Threshold artifacts: Acoustic preference uses hard cutoffs, so near-threshold songs can flip rank abruptly.
+- Diversity risk: The same "central" songs can appear repeatedly across profiles, reducing recommendation variety.
 
-Prompts:  
-
-- Additional features or preferences  
-- Better ways to explain recommendations  
-- Improving diversity among the top results  
-- Handling more complex user tastes  
+If this were deployed in a real app, these effects could feel unfair to users whose taste is less represented in the catalog.
 
 ---
 
-## 9. Personal Reflection  
+## 7. Evaluation
 
-A few sentences about your experience.  
+I evaluated the model with both normal and edge-case profiles and reviewed top-5 recommendations for each case.
 
-Prompts:  
+Evaluation scenarios included:
+- normal profiles (for example pop/happy/high-energy)
+- conflicting profiles (for example lofi/sad with very high energy)
+- empty or unknown categorical preferences
+- impossible preference bundles
+- mood-enabled vs mood-disabled comparisons
+- changed scoring weights (original vs energy-heavy)
 
-- What you learned about recommender systems  
-- Something unexpected or interesting you discovered  
-- How this changed the way you think about music recommendation apps  
+I also ran automated tests in tests/test_recommender.py. I did not use a formal numeric metric like precision@k; evaluation was qualitative, focused on whether outputs matched user intent and whether ranking changes were explainable.
+
+---
+
+## 8. Future Work
+
+- Expand the catalog to improve genre and mood coverage.
+- Rebalance weights so one strong numeric feature does not dominate semantic intent.
+- Replace hard acoustic thresholds with smoother scoring.
+- Add diversity-aware reranking so top results are less repetitive.
+- Reintroduce and calibrate mood influence to better capture emotional intent.
+- Add lightweight feedback loops so the system can adapt to a user's skips/likes over time.
+
+---
+
+## 9. Personal Reflection
+
+This project made it clear that recommenders are not just about data; they are about choices in representation and weighting. Turning taste into numbers is powerful, but it can also flatten meaning. I was surprised by how often energy proximity overruled genre or mood expectations, especially in edge cases.
+
+It also changed how I think about fairness in recommendation systems. Bias does not only come from harmful labels; it can come from coverage gaps, objective functions, and design defaults that repeatedly favor some tastes over others. Human judgment still matters for deciding whether recommendations feel appropriate, diverse, and respectful of user intent.
