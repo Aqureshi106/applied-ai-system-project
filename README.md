@@ -11,23 +11,35 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-Replace this paragraph with your own summary of what your version does.
+This version scores each song across 11 weighted features — genre, mood, energy, tempo, valence, danceability, popularity, release decade, mood tags, era descriptor, and acoustic preference — and returns the top K matches. Four scoring modes (balanced, genre-first, mood-first, energy-focused) let the caller shift emphasis depending on what matters most for a given user profile.
 
 ---
 
 ## How The System Works
 
-Real recommendation systems usually combine many signals, such as user behavior and item features, to predict what feels like a good next option. In this project, each `Song` uses genre, mood, energy, tempo, valence, danceability, and acousticness. The `UserProfile` stores a favorite genre, favorite mood, target energy level, and whether the user prefers acoustic songs. The `Recommender` gives each song a score using a simple recipe: genre matches are worth 2 points, mood matches are worth 1 point, and energy adds similarity points based on how close the song is to the user’s target. It then sorts the catalog from best match to weakest match and returns the top songs. This version prioritizes songs that match the user’s style and overall vibe, rather than just choosing the highest or lowest values.
+Real recommendation systems combine many signals to predict what feels like a good next option. In this project, each `Song` carries genre, mood, energy, tempo, valence, danceability, acousticness, popularity, release decade, mood tags, and an era descriptor. The `UserProfile` stores a favorite genre, favorite mood, target energy level, acoustic preference, and optional numeric targets for tempo, valence, danceability, popularity, preferred decade, and mood tags.
+
+The `Recommender` scores each song across all 11 features using a weighted formula. Categorical matches (genre, mood) add a flat bonus scaled by the active mode’s weight. Numeric features (energy, tempo, valence, danceability, popularity) add proximity points that decrease as the gap grows. Decade, mood tags, era descriptor, and acoustic preference add further bonuses when the song fits the listener’s era and vibe. A scoring mode — `balanced`, `genre-first`, `mood-first`, or `energy-focused` — multiplies each feature’s contribution so the caller can shift emphasis. Songs are then sorted by total score, with title as a tiebreaker, and the top K are returned.
 
 ### Algorithm Recipe
 
 1. Load the songs from `data/songs.csv`.
-2. Compare each song to the user's preferences one song at a time.
-3. Add 2 points when the song matches the user's favorite genre.
-4. Add 1 point when the song matches the user's favorite mood.
-5. Add similarity points for energy based on how close the song is to the user's target energy.
-6. Sort all songs by total score from highest to lowest.
-7. Return the top K songs as the final recommendations.
+2. Select a scoring mode (`balanced`, `genre-first`, `mood-first`, or `energy-focused`) which sets a weight multiplier for each feature.
+3. Compare each song to the user's preferences one song at a time:
+   - Add `1.0 × genre_weight` when the song's genre matches the user's favorite genre.
+   - Add `1.0 × mood_weight` when the song's mood matches the user's favorite mood.
+   - Add up to `6.0 × energy_weight` proximity points based on how close the song's energy is to the user's target.
+   - Add up to `1.5 × tempo_weight` proximity points based on tempo closeness.
+   - Add up to `1.25 × valence_weight` proximity points based on valence closeness.
+   - Add up to `1.0 × danceability_weight` proximity points based on danceability closeness.
+   - Add up to `1.3 × popularity_weight` proximity points based on popularity closeness.
+   - Add up to `1.4 × decade_weight` bonus points when the song's release era matches the user's preferred decade.
+   - Add up to `1.8 × tags_weight` bonus points for shared mood tags.
+   - Add `0.9 × era_weight` when the song's era descriptor matches the inferred target era.
+   - Add up to `2.0 × acoustic_weight` bonus based on whether the song's acousticness matches the user's acoustic preference.
+4. Store each song's total score and the list of reasons that contributed to it.
+5. Sort all songs by total score from highest to lowest, using title alphabetically as a tiebreaker.
+6. Return the top K songs as the final recommendations.
 
 ### Potential Biases
 
@@ -252,103 +264,3 @@ Read and complete `model_card.md`:
 Building this recommender showed me how user preferences become a prediction when they are converted into numeric features and weights. The model does not "understand" music like a person; it computes similarity across fields like energy, tempo, valence, danceability, and acousticness, then ranks songs by total score. Through testing, I learned that even simple weight choices strongly shape outcomes. For example, when energy has a large weight, songs with close energy values can outrank songs that better match the user's stated genre or mood. That made it clear that recommendation quality is not just about data, but also about design decisions in the scoring formula.
 
 I also learned how bias and unfairness can appear in subtle ways. Because the catalog is small and uneven across genres, users with underrepresented tastes can receive weaker or less relevant results. The system can also over-recommend songs that are numerically central, which reduces diversity and constantly favors certain styles. These patterns may seem unfair to users who expect recommendations to reflect identity, culture, or mood nuance rather than only numeric proximity. This project reinforced that human judgment still matters: we need to evaluate whether outputs feel appropriate, not just whether the math is internally consistent.
-
-
----
-
-## 7. `model_card_template.md`
-
-Combines reflection and model card framing from the Module 3 guidance. :contentReference[oaicite:2]{index=2}  
-
-```markdown
-# 🎧 Model Card - Music Recommender Simulation
-
-## 1. Model Name
-
-BeatMatcher Mini 1.0
-
----
-
-## 2. Intended Use
-
-This model recommends 3 to 5 songs from a small, fixed catalog based on a user's stated preferences. It is designed for classroom learning about recommendation systems, not for production use.
-
-Target users are students and instructors exploring how feature-based scoring works and how design choices can create bias.
-
----
-
-## 3. How It Works (Short Explanation)
-
-The recommender compares each song to a user profile and computes a total match score. The profile includes preferred genre, mood, energy target, acoustic preference, and optional numeric targets (tempo, valence, danceability).
-
-Songs gain points for matching categorical preferences and for being numerically close to target values. In practice, energy similarity and acoustic preference can strongly influence ranking. After scoring all songs, the system sorts by score and returns the top results.
-
----
-
-## 4. Data
-
-The dataset in data/songs.csv contains 18 songs.
-
-Each song includes:
-- title and artist
-- genre and mood labels
-- energy, tempo_bpm, valence, danceability, acousticness
-
-I did not add or remove songs from the provided catalog. The data covers several genres (for example pop, lofi, rock, jazz, electronic, metal, classical, hip hop), but representation is uneven. Some styles have only one song, so the catalog mostly reflects a narrow, synthetic sample rather than broad real-world listening diversity.
-
----
-
-## 5. Strengths
-
-- Transparent behavior: The scoring logic is easy to explain and debug.
-- Strong performance on in-catalog preferences: Users with common profiles (for example pop + high energy or lofi + chill) receive results that feel intuitive.
-- Good for experimentation: Weight changes and feature toggles quickly show how ranking behavior shifts.
-- Fast and simple: No training step is required; scoring runs directly on metadata.
-
----
-
-## 6. Limitations and Bias
-
-- Small catalog limitation: Results are constrained by only 18 songs, which can cause weak matches for niche preferences.
-- Representation bias: Underrepresented genres are disadvantaged because there are fewer candidates to recommend.
-- Numeric-over-semantic bias: Songs with close numeric values can outrank songs that better match the user's stated genre or mood intent.
-- Weight sensitivity: Minor weight changes can produce large ranking changes, making output stability fragile.
-- Threshold artifacts: Acoustic preference uses hard cutoffs, so near-threshold songs can flip rank abruptly.
-- Diversity risk: The same "central" songs can appear repeatedly across profiles, reducing recommendation variety.
-
-If this were deployed in a real app, these effects could feel unfair to users whose taste is less represented in the catalog.
-
----
-
-## 7. Evaluation
-
-I evaluated the model with both normal and edge-case profiles and reviewed top-5 recommendations for each case.
-
-Evaluation scenarios included:
-- normal profiles (for example pop/happy/high-energy)
-- conflicting profiles (for example lofi/sad with very high energy)
-- empty or unknown categorical preferences
-- impossible preference bundles
-- mood-enabled vs mood-disabled comparisons
-- changed scoring weights (original vs energy-heavy)
-
-I also ran automated tests in tests/test_recommender.py. I did not use a formal numeric metric like precision@k; evaluation was qualitative, focused on whether outputs matched user intent and whether ranking changes were explainable.
-
----
-
-## 8. Future Work
-
-- Expand the catalog to improve genre and mood coverage.
-- Rebalance weights so one strong numeric feature does not dominate semantic intent.
-- Replace hard acoustic thresholds with smoother scoring.
-- Add diversity-aware reranking so top results are less repetitive.
-- Reintroduce and calibrate mood influence to better capture emotional intent.
-- Add lightweight feedback loops so the system can adapt to a user's skips/likes over time.
-
----
-
-## 9. Personal Reflection
-
-This project made it clear that recommenders are not just about data; they are about choices in representation and weighting. Turning taste into numbers is powerful, but it can also flatten meaning. I was surprised by how often energy proximity overruled genre or mood expectations, especially in edge cases.
-
-It also changed how I think about fairness in recommendation systems. Bias does not only come from harmful labels; it can come from coverage gaps, objective functions, and design defaults that repeatedly favor some tastes over others. Human judgment still matters for deciding whether recommendations feel appropriate, diverse, and respectful of user intent.
