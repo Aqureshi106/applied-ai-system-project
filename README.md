@@ -37,12 +37,14 @@ This system might over-prioritize genre and energy, causing it to miss great son
 
 ```mermaid
 flowchart TD
-   A["<b>User Prefs</b><br/>(favorite genre, mood,<br/>energy, acoustic)"] --> B["Load songs from CSV"]
-   B --> C["For each song"]
-   C --> D["<b>Score song</b><br/>genre match<br/>mood match<br/>energy similarity<br/>decade, tags, era, etc."]
+   A["<b>User Prefs</b><br/>(genre, mood, energy,<br/>acoustic, tempo, valence,<br/>danceability, popularity,<br/>decade, mood_tags)"] --> D
+   B["Load songs from CSV"] --> C["For each song"]
+   M["<b>Scoring Mode</b><br/>(balanced / genre-first /<br/>mood-first / energy-focused)"] --> D
+   C --> D["<b>Score song</b><br/>genre match<br/>mood match<br/>energy similarity<br/>tempo, valence, danceability<br/>popularity, decade, tags, era<br/>acoustic preference"]
    D --> E["Store score & reasons"]
-   E --> F["Sort by score"]
+   E --> F["Sort by score desc<br/>(title as tiebreaker)"]
    F --> G["Return Top K"]
+
 ```
 
 ---
