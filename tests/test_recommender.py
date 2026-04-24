@@ -1,4 +1,4 @@
-from src.recommender import Song, UserProfile, Recommender
+from src.recommender import Song, UserProfile, Recommender, recommend_songs
 
 def make_small_recommender() -> Recommender:
     songs = [
@@ -140,3 +140,52 @@ def test_scoring_modes_change_the_top_song():
 
     assert genre_first.title == "Genre First Pop"
     assert mood_first.title == "Mood First Happy"
+
+
+def test_explanation_includes_retrieved_catalog_evidence():
+    user = UserProfile(
+        favorite_genre="pop",
+        favorite_mood="happy",
+        target_energy=0.8,
+        likes_acoustic=False,
+    )
+    rec = make_small_recommender()
+    top_song = rec.recommend(user, k=1)[0]
+
+    explanation = rec.explain_recommendation(user, top_song)
+    assert "supported by similar catalog examples" in explanation
+
+
+def test_guardrails_normalize_bad_inputs_and_invalid_mode():
+    songs = [
+        {
+            "id": 1,
+            "title": "Guardrail Song",
+            "artist": "Test",
+            "genre": "pop",
+            "mood": "happy",
+            "energy": 0.95,
+            "tempo_bpm": 128,
+            "valence": 0.85,
+            "danceability": 0.88,
+            "acousticness": 0.1,
+            "popularity": 90,
+            "release_year": 2024,
+            "release_decade": "2020s",
+            "mood_tags": "euphoric, uplifting",
+            "era_descriptor": "current",
+        }
+    ]
+    prefs = {
+        "genre": "pop",
+        "mood": "happy",
+        "energy": 4.5,
+        "likes_acoustic": "False",
+        "target_tempo": 400,
+        "target_valence": 3.0,
+    }
+
+    results = recommend_songs(prefs, songs, k=-5, mode="totally-unknown-mode")
+
+    assert len(results) == 1
+    assert results[0][0]["title"] == "Guardrail Song"
