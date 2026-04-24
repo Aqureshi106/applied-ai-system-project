@@ -1,91 +1,100 @@
-# 🎧 Model Card - Music Recommender Simulation
+# Model Card - BeatMatcher Agentic Recommender
 
-## 1. Model Name
+## 1. Model Name and Version
+BeatMatcher Agentic Recommender v1.1
 
-BeatMatcher Mini 1.0
+## 2. AI Feature Selection
+- Primary required feature: Agentic workflow
+	- Planner -> Retriever -> Ranker -> Verifier
+- Optional stretch feature: Reliability and testing harness
+	- Scripted benchmark scenarios with pass or fail outcomes and confidence reporting
 
----
+## 3. Intended Use
+This system recommends top songs from a fixed catalog based on user preferences such as genre, mood, energy, acoustic preference, and optional numeric targets. It is designed for learning and portfolio demonstration, not for production deployment.
 
-## 2. Intended Use
+Primary users are students, instructors, and portfolio reviewers who want transparent AI behavior and measurable reliability evidence.
 
-This model recommends 3 to 5 songs from a small, fixed catalog based on a user's stated preferences. It is designed for classroom learning about recommendation systems, not for production use.
+## 4. System Overview
+The system processes user input through four stages:
+1. Planner normalizes and constrains user preferences.
+2. Retriever selects likely candidate songs from the catalog.
+3. Ranker applies weighted scoring across semantic and numeric features.
+4. Verifier applies guardrails, deterministic ordering, and low-confidence fallback handling.
 
-Target users are students and instructors exploring how feature-based scoring works and how design choices can create bias.
+Outputs include recommended songs plus explanation text describing why each song was selected.
 
----
+## 5. Data
+Source data: [data/songs.csv](data/songs.csv)
 
-## 3. How It Works (Short Explanation)
+Current catalog size: 18 songs
 
-The recommender compares each song to a user profile and computes a total match score. The profile includes preferred genre, mood, energy target, acoustic preference, and optional numeric targets (tempo, valence, danceability).
-
-Songs gain points for matching categorical preferences and for being numerically close to target values. In practice, energy similarity and acoustic preference can strongly influence ranking. After scoring all songs, the system sorts by score and returns the top results.
-
----
-
-## 4. Data
-
-The dataset in data/songs.csv contains 18 songs.
-
-Each song includes:
-- title and artist
-- genre and mood labels
+Per-song attributes include:
+- title, artist, genre, mood
 - energy, tempo_bpm, valence, danceability, acousticness
+- popularity, release year and decade, mood tags, era descriptor
 
-I did not add or remove songs from the provided catalog. The data covers several genres (for example pop, lofi, rock, jazz, electronic, metal, classical, hip hop), but representation is uneven. Some styles have only one song, so the catalog mostly reflects a narrow, synthetic sample rather than broad real-world listening diversity.
+Dataset limitations:
+- Genre coverage is uneven.
+- Several styles have sparse representation.
+- Catalog size is too small for broad personalization claims.
 
----
+## 6. Reliability and Evaluation Evidence
+Automated tests:
+- Unit and behavior checks in [tests/test_recommender.py](tests/test_recommender.py)
+- Latest result: 6 out of 6 tests passed
 
-## 5. Strengths
+Reliability harness (stretch feature):
+- Script: [src/eval_harness.py](src/eval_harness.py)
+- Latest result: 3 out of 3 benchmark scenarios passed
+- Average confidence (normalized proxy): 0.87
 
-- Transparent behavior: The scoring logic is easy to explain and debug.
-- Strong performance on in-catalog preferences: Users with common profiles (for example pop + high energy or lofi + chill) receive results that feel intuitive.
-- Good for experimentation: Weight changes and feature toggles quickly show how ranking behavior shifts.
-- Fast and simple: No training step is required; scoring runs directly on metadata.
+Additional confidence signal:
+- Average top recommendation score across 5 representative profiles: 11.40
+- Observed top-score range: 9.11 to 13.81
 
----
+Human evaluation:
+- Output quality is manually reviewed for semantic fit.
+- Review findings are used to adjust weights, rules, and test coverage.
 
-## 6. Limitations and Bias
+## 7. Strengths
+- Transparent and explainable scoring behavior
+- Deterministic and reproducible outputs under fixed inputs
+- Guardrails for malformed input and invalid mode selection
+- Fast iteration cycle for experimentation and testing
 
-- Small catalog limitation: Results are constrained by only 18 songs, which can cause weak matches for niche preferences.
-- Representation bias: Underrepresented genres are disadvantaged because there are fewer candidates to recommend.
-- Numeric-over-semantic bias: Songs with close numeric values can outrank songs that better match the user's stated genre or mood intent.
-- Weight sensitivity: Minor weight changes can produce large ranking changes, making output stability fragile.
-- Threshold artifacts: Acoustic preference uses hard cutoffs, so near-threshold songs can flip rank abruptly.
-- Diversity risk: The same "central" songs can appear repeatedly across profiles, reducing recommendation variety.
+## 8. Limitations and Bias
+- Small and synthetic catalog restricts diversity and coverage
+- Numeric-over-semantic bias can appear in conflicting preference cases
+- Hard thresholds can cause abrupt ranking changes near boundaries
+- Weight tuning sensitivity can shift rankings substantially
 
-If this were deployed in a real app, these effects could feel unfair to users whose taste is less represented in the catalog.
+## 9. Misuse Risks and Mitigations
+Potential misuse:
+- Presenting recommendations as objective truth despite limited data and heuristic logic
+- Applying this system in high-stakes contexts it was not designed for
 
----
+Mitigations implemented:
+- Explanations for recommendation rationale
+- Input normalization and fallback guardrails
+- Logging support for warnings and decision trace points
+- Human review loop for quality control
+- Explicit scope statement: educational and portfolio use only
 
-## 7. Evaluation
+## 10. Operational Notes
+Core implementation files:
+- [src/recommender.py](src/recommender.py)
+- [src/main.py](src/main.py)
 
-I evaluated the model with both normal and edge-case profiles and reviewed top-5 recommendations for each case.
+Runtime behavior:
+- Logging level can be configured with RECOMMENDER_LOG_LEVEL
+- Verifier can trigger fallback ordering when confidence is weak
 
-Evaluation scenarios included:
-- normal profiles (for example pop/happy/high-energy)
-- conflicting profiles (for example lofi/sad with very high energy)
-- empty or unknown categorical preferences
-- impossible preference bundles
-- mood-enabled vs mood-disabled comparisons
-- changed scoring weights (original vs energy-heavy)
+## 11. Future Work
+- Expand and rebalance catalog coverage
+- Replace threshold rules with smoother preference curves
+- Add diversity-aware reranking
+- Add stronger confidence calibration linked to user feedback
+- Extend retrieval to multi-source metadata and compare quality against baseline
 
-I also ran automated tests in tests/test_recommender.py. I did not use a formal numeric metric like precision@k; evaluation was qualitative, focused on whether outputs matched user intent and whether ranking changes were explainable.
-
----
-
-## 8. Future Work
-
-- Expand the catalog to improve genre and mood coverage.
-- Rebalance weights so one strong numeric feature does not dominate semantic intent.
-- Replace hard acoustic thresholds with smoother scoring.
-- Add diversity-aware reranking so top results are less repetitive.
-- Reintroduce and calibrate mood influence to better capture emotional intent.
-- Add lightweight feedback loops so the system can adapt to a user's skips/likes over time.
-
----
-
-## 9. Personal Reflection
-
-This project made it clear that recommenders are not just about data; they are about choices in representation and weighting. Turning taste into numbers is powerful, but it can also flatten meaning. I was surprised by how often energy proximity overruled genre or mood expectations, especially in edge cases.
-
-It also changed how I think about fairness in recommendation systems. Bias does not only come from harmful labels; it can come from coverage gaps, objective functions, and design defaults that repeatedly favor some tastes over others. Human judgment still matters for deciding whether recommendations feel appropriate, diverse, and respectful of user intent.
+## 12. Reflection
+This project showed that reliable AI systems require more than producing outputs. The key lessons were to make decision stages observable, pair automated tests with human judgment, and treat measurable confidence as a useful signal rather than proof of semantic correctness.
