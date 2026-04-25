@@ -146,6 +146,7 @@ I implemented a **test harness / evaluation script** as an extension of the same
 - Overall, collaboration worked best when AI generated implementation options quickly and I validated them with tests, edge cases, and manual review.
 
 ## **Portfolio Artifact**
+- Loom walkthrough video: [https://www.loom.com/share/87f946d450304bc397a7c03b6f35959c](https://www.loom.com/share/87f946d450304bc397a7c03b6f35959c)
 - GitHub code link: [https://github.com/Aqureshi106/applied-ai-system-project](https://github.com/Aqureshi106/applied-ai-system-project)
 
 This project shows that I approach AI engineering as a full-system discipline, not just a modeling task. I prioritize clear architecture, measurable reliability, guardrails, and human-in-the-loop review so outputs are both explainable and trustworthy. It also reflects my ability to iterate quickly with AI assistance while still validating behavior with tests, benchmark scenarios, and critical judgment.
